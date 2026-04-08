@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -O3 -DNDEBUG -Wl,-s -Wl,--gc-sections -Wl,--dependency-file=CMakeFiles/ppm.dir/link.d -shared  -o ppm.cpython-313-x86_64-linux-gnu.so CMakeFiles/ppm.dir/src/ppm.cpp.o  libnanobind-static.a
