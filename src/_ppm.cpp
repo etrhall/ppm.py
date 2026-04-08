@@ -886,7 +886,7 @@ public:
 };
 
 
-NB_MODULE(ppm, m) {
+NB_MODULE(_ppm, m) {
   nb::class_<ppm>(m, "ppm")
     // ppm constructor not made available in NB
     .def("model_seq", &ppm::model_seq)
