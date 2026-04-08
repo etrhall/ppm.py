@@ -249,7 +249,6 @@ public:
   bool sub_n_from_m1_dist;
   bool lambda_uses_zero_weight_symbols;
   bool debug_smooth;
-  std::vector<std::string> alphabet_levels;
   
   int num_observations = 0;
   std::vector<double> all_time;
@@ -262,8 +261,7 @@ public:
       std::string escape_,
       bool decay_,
       bool sub_n_from_m1_dist_,
-      bool lambda_uses_zero_weight_symbols_,
-      std::vector<std::string> alphabet_levels_
+      bool lambda_uses_zero_weight_symbols_
   ) {
     if (alphabet_size_ <= 0) {
       throw std::invalid_argument("alphabet size must be greater than 0");
@@ -279,7 +277,6 @@ public:
     decay = decay_;
     sub_n_from_m1_dist = sub_n_from_m1_dist_;
     lambda_uses_zero_weight_symbols = lambda_uses_zero_weight_symbols_;
-    alphabet_levels = alphabet_levels_;
   }
   
   virtual ~ ppm() {};
@@ -769,8 +766,7 @@ public:
     bool shortest_deterministic_,
     bool exclusion_,
     bool update_exclusion_,
-    std::string escape_,
-    std::vector<std::string> alphabet_levels_
+    std::string escape_
   ) : ppm(
       alphabet_size_,
       order_bound_, 
@@ -780,8 +776,7 @@ public:
       escape_,
       false, // decay
       true, // sub_n_from_m1_dist
-      true, // lambda_uses_zero_weight_symbols
-      alphabet_levels_
+      true // lambda_uses_zero_weight_symbols
       ) { 
     data = {};
   }
@@ -906,11 +901,10 @@ NB_MODULE(ppm, m) {
     .def_rw("sub_n_from_m1_dist", &ppm::sub_n_from_m1_dist)
     .def_rw("lambda_uses_zero_weight_symbols", &ppm::lambda_uses_zero_weight_symbols)
     .def_rw("debug_smooth", &ppm::debug_smooth)
-    .def_rw("alphabet_levels", &ppm::alphabet_levels)
   ;
 
   nb::class_<ppm_simple, ppm>(m, "ppm_simple")
-    .def(nb::init<int, int, bool, bool, bool, std::string, std::vector<std::string>>())
+    .def(nb::init<int, int, bool, bool, bool, std::string>())
     .def("get_count", &ppm_simple::get_count)
   ;
 
