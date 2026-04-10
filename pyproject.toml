@@ -1,0 +1,24 @@
+[build-system]
+requires = ["scikit-build-core >=0.4.3", "nanobind >=1.3.2"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "ppm"
+version = "0.0.1"
+description = "Statistical modelling of sequences using Prediction by Partial Matching"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  { name = "Edward Hall", email = "etrhall@gmail.com"},
+]
+classifiers = [
+  "License :: MIT",
+]
+
+[project.urls]
+Homepage = "https://github.com/etrhall/ppm.py"
+
+[tool.scikit-build]
+minimum-version = "0.4"
+build-dir = "build/{wheel_tag}"
+wheel.py-api = "cp312"

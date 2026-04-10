@@ -1,8 +1,8 @@
 import pandas as pd
-import _ppm
+from ._ppm import ppm_simple
 
 
-class PPMSimple(_ppm.ppm_simple):
+class PPMSimple(ppm_simple):
     def __init__(
         self,
         alphabet_size: int | None = None,
