@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15...3.27)
 
-project(ppm LANGUAGES CXX)
+project(_ppm LANGUAGES CXX)
 
 # Warn if the user invokes CMake directly
 if (NOT SKBUILD)
@@ -39,3 +39,6 @@ nanobind_add_module(_ppm STABLE_ABI src/ppm.cpp)
 
 # Install directive for scikit-build-core
 install(TARGETS _ppm LIBRARY DESTINATION ppm)
+
+# Include boost
+target_include_directories(_ppm PRIVATE external)
