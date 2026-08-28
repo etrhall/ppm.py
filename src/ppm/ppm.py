@@ -1,4 +1,6 @@
+from itertools import chain
 import pandas as pd
+
 from ._ppm import ppm_simple
 
 
@@ -174,3 +176,97 @@ class PPMSimple(ppm_simple):
             }
         )
         return df
+
+    def model_poly(
+        self,
+        seqs: list[list],
+        times: list[list[float]] = [],
+        train: bool | list[bool] = True,
+        predict: bool | list[bool] = True,
+        return_distribution: bool = True,
+        return_entropy: bool = True,
+    ) -> pd.DataFrame:
+        """
+        Model a list of sequences
+
+        Analyses concurrent sequences using a PPM model.
+
+        :param list seqs: A list of lists defining the input sequences.
+
+        :param list times: List of lists of timepoints corresponding to each element of the
+            sequences. If empty symbol index is used.
+
+        :param bool train: Whether or not the model should learn from each incoming sequence.
+
+        :param bool predict: Whether or not to generate predictions for each
+            element of each incoming sequence.
+
+        :param bool return_distribution: Whether or not to return the
+            conditional distribution over each potential continuation as part
+            of the model output (ignored if ``predict = False``).
+
+        :param bool return_entropy: Whether or not to return the entropy of
+            each event prediction (ignored if ``predict = False``).
+
+        :return: A ``pandas.DataFrame`` which will be empty if ``predict = False``
+            and otherwise will contain one row for each element in each sequence,
+            with the following columns:
+                - ``time`` - the time of each event.
+                - ``stream`` - index of input sequence in ```seqs`.
+                - ``symbol`` - the symbol being predicted. This should be
+                  identical to the input argument ``seqs``.
+                - ``i`` - the index of symbol in alphabet levels.
+                - ``model_order`` - the model order used for generating predictions.
+                - ``information_content`` - the information content
+                  (i.e., negative log probability, base 2) of the observed symbol.
+                - ``entropy`` - the expected information content when predicting the symbol.
+                - ``distribution`` - the predictive probability distribution
+                  for the symbol, conditioned on the preceding symbols.
+        """
+        alphabet_diff = set(chain.from_iterable(seqs)) - set(self.alphabet_levels)
+        if len(alphabet_diff) > 0:
+            if (len(self.alphabet_levels) + len(alphabet_diff)) > self.alphabet_size:
+                raise Exception(
+                    "number of alphabet levels greater than model alphabet size"
+                )
+            self.alphabet_levels = self.alphabet_levels + list(alphabet_diff)
+        iseqs = [[self.alphabet_levels.index(x) for x in seq] for seq in seqs]
+
+        N = len(seqs)
+        if not times:
+            times = [
+                [max([0] + self.all_time) + i + 1 for i in range(len(x))] for x in seqs
+            ]
+        if not isinstance(train, list):
+            train = [train] * N
+        if not isinstance(predict, list):
+            predict = [predict] * N
+
+        assert len(times) == N, "number of input sequences and times must match"
+        assert len(train) == N, "number of input sequences and train states must match"
+        assert len(predict) == N, "number of input sequences and predicts must match"
+        assert all(isinstance(x, bool) for x in train), "all train must be bools"
+        assert all(isinstance(x, bool) for x in predict), "all predict must be bools"
+        assert isinstance(return_distribution, bool), "return_distribution must be bool"
+        assert isinstance(return_entropy, bool), "return_entropy must be bool"
+        for i, (s, t) in enumerate(zip(seqs, times)):
+            assert len(s) == len(t), f"seqs[{i}] and times[{i}] must be of same length"
+
+        results = super().model_poly(
+            iseqs, times, train, predict, return_distribution, return_entropy
+        )
+        df = pd.DataFrame(
+            {
+                "time": chain.from_iterable(times),
+                "stream": [i for i in range(N) for _ in results[i].symbol],
+                "symbol": [self.alphabet_levels[i] for x in results for i in x.symbol],
+                "i": chain.from_iterable(x.symbol for x in results),
+                "model_order": chain.from_iterable(x.model_order for x in results),
+                "information_content": chain.from_iterable(
+                    x.information_content for x in results
+                ),
+                "entropy": chain.from_iterable(x.entropy for x in results),
+                "distribution": chain.from_iterable(x.distribution for x in results),
+            }
+        )
+        return df.sort_values(by=["time", "stream"], ignore_index=True)

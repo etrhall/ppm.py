@@ -364,6 +364,92 @@ public:
     return(result);
   }
   
+  std::vector<sequence_prediction> model_poly(
+      std::vector<sequence> seqs,
+      std::vector<std::vector<double>> times,
+      std::vector<bool> train,
+      std::vector<bool> predict,
+      bool return_distribution = true,
+      bool return_entropy = true
+    ) {
+    int n_seq = seqs.size();
+    if (n_seq != times.size()) {
+      throw std::invalid_argument("equal numbers of sequences and times must be given");
+    }
+
+    // Vector of unique time points in all sequences
+    std::vector<double> unique_times;
+    for (int i = 0; i < n_seq; i++) {
+      for (int j = 0; j < times[i].size(); j++) {
+        unique_times.push_back(times[i][j]);
+      }
+    }
+    std::sort(unique_times.begin(), unique_times.end());
+    unique_times.erase(std::unique(unique_times.begin(), unique_times.end()), unique_times.end());
+    int n_unique_times = unique_times.size();
+
+    if (this->all_time.size() > 0 && unique_times.size() > 0 && unique_times[0] < this->all_time.back()) {
+      throw std::range_error("a sequence may not begin before the previous sequence finished");
+    }
+
+    // Vector of indices of when each time-point occurs in each sequence
+    std::vector<std::vector<int>> indices_at_time;
+    for (int i = 0; i < n_unique_times; i++) {
+      indices_at_time.push_back(std::vector<int>());
+      for (int j = 0; j < n_seq; j++) {
+        indices_at_time[i].push_back(
+          std::distance(
+            times[j].begin(),
+            std::find(times[j].begin(), times[j].end(), unique_times[i])
+          )
+        );
+      }
+    }
+
+    // Vector of results
+    std::vector<sequence_prediction> results;
+    for (int i = 0; i < n_seq; i++) {
+      sequence_prediction result(return_distribution,
+                                 return_entropy,
+                                 this->decay);
+      results.push_back(result);
+    }
+
+    for (int k = 0; k < n_unique_times; k++)
+    {
+      int pos_i = num_observations;
+
+      // Predict
+      for (int j = 0; j < n_seq; j++)
+      {
+        int i = indices_at_time[k][j];
+        if (predict[j] && (i < times[j].size()))
+        {
+          sequence context = (i < 1 || order_bound < 1) ? sequence() : subseq(seqs[j], std::max(0, i - order_bound), i - 1);
+          symbol_prediction pred = predict_symbol(seqs[j][i], context, pos_i, times[j][i], false);
+          results[j].insert(pred);
+        }
+      }
+
+      // Train
+      for (int j = 0; j < n_seq; j++)
+      {
+        int i = indices_at_time[k][j];
+        if (train[j] && (i < times[j].size()))
+        {
+          this->all_time.push_back(times[j][i]);
+          bool full_only = false;
+          for (int h = std::max(0, i - order_bound); h <= i; h++) {
+            full_only = this->insert(subseq(seqs[j], h, i), pos_i, times[j][i], full_only);
+          }
+          num_observations++;
+        }
+      }
+    }
+
+    return (results);
+  }
+  
   symbol_prediction predict_symbol(
       int symbol, 
       const sequence &context,
@@ -890,6 +976,7 @@ NB_MODULE(_ppm, m) {
   nb::class_<ppm>(m, "ppm")
     // ppm constructor not made available in NB
     .def("model_seq", &ppm::model_seq)
+    .def("model_poly", &ppm::model_poly)
     .def("get_weight", &ppm::get_weight)
     .def_rw("alphabet_size", &ppm::alphabet_size)
     .def_rw("order_bound", &ppm::order_bound)
