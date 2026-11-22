@@ -906,7 +906,12 @@ NB_MODULE(_ppm, m) {
   nb::class_<ppm_simple, ppm>(m, "ppm_simple")
     .def(nb::init<int, int, bool, bool, bool, std::string>())
     .def("get_count", &ppm_simple::get_count)
-  ;
+    .def("__copy__", [](const ppm_simple &self) {
+        return ppm_simple(self);
+    })
+    .def("__deepcopy__", [](const ppm_simple &self, nb::dict /*memo*/) {
+        return ppm_simple(self);
+    }, "memo"_a);
 
   nb::class_<sequence_prediction>(m, "sequence_prediction")
     .def_ro("symbol", &sequence_prediction::symbol)
