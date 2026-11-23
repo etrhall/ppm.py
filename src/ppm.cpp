@@ -3,6 +3,7 @@
 #include <nanobind/stl/string.h>
 
 namespace nb = nanobind;
+using namespace nb::literals;
 
 #define _USE_MATH_DEFINES
 #include <math.h>
