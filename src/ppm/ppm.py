@@ -1,3 +1,4 @@
+import copy
 import pandas as pd
 from ._ppm import ppm_simple
 
@@ -174,3 +175,21 @@ class PPMSimple(ppm_simple):
             }
         )
         return df
+
+    def _clone(self, memo=None):
+        cls = type(self)
+        new = cls.__new__(cls)
+        ppm_simple.__init__(new, self)
+        if memo is not None:
+            memo[id(self)] = new
+            for k, v in self.__dict__.items():
+                new.__dict__[k] = copy.deepcopy(v, memo)
+        else:
+            new.__dict__.update(self.__dict__)
+        return new
+
+    def __copy__(self):
+        return self._clone()
+
+    def __deepcopy__(self, memo):
+        return self._clone(memo)
